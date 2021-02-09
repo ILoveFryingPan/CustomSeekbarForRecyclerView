@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="scroll_bg_view" type="id"/>
+    <item name="scroll_bar_view" type="id"/>
+    <item name="scroll_bar_root_layout" type="id"/>
+</resources>

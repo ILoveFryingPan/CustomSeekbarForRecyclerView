@@ -1,0 +1,3 @@
+include ':seekbarrecycler'
+include ':app'
+rootProject.name = "CustomSeekbarForRecyclerView"
