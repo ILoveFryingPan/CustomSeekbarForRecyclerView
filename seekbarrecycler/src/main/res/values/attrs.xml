@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ScrollbarRecyclerView">
+        <attr name="isFloatBar" format="boolean"/>
+        <attr name="spaceByList" format="dimension"/>
+        <attr name="spaceByParent" format="dimension"/>
+        <attr name="scrollbarLength" format="dimension"/>
+        <attr name="scrollbarWidth" format="dimension"/>
+        <attr name="scrollbarBGWidth" format="dimension"/>
+        <attr name="scrollbarBGLength" format="dimension"/>
+        <attr name="scrollbarBarWidth" format="dimension"/>
+        <attr name="scrollbarBarLength" format="dimension"/>
+        <attr name="lengthVariable" format="boolean"/>
+        <attr name="scrollbarBarMinLength" format="dimension"/>
+        <attr name="scrollbarBGShape" format="reference"/>
+        <attr name="scrollbarBarShape" format="reference"/>
+    </declare-styleable>
+</resources>

@@ -1,10 +1,14 @@
 package com.example.seekbarrecycler;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Point;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -93,6 +97,7 @@ public class ScrollbarRecyclerView extends RelativeLayout {
 
     /*
         滚动条滚动View的长度，该长度默认通过列表的屏幕可视区域和列表的总长度计算得来
+        当长度可变时，通过set设置的长度无效
      */
     private int scrollbarBarLength = -1;
 
@@ -104,7 +109,7 @@ public class ScrollbarRecyclerView extends RelativeLayout {
     public @interface LengthVariable{}
     /*
         滚动条滚动view的长度是否可变，默认是1，表示可变
-        值为0时，表示不可变，此时scrollbarBarLength必须有值，否则抛出异常
+        值为0时，表示不可变，此时 scrollbarBarLength 必须有值，否则抛出异常
      */
     @LengthVariable
     private int lengthVariable = LENGTH_VARIABLE_TRUE;
@@ -202,6 +207,33 @@ public class ScrollbarRecyclerView extends RelativeLayout {
         scrollbarBarWidth = dip5;
 
         scrollbarBarMinLength = dip15;
+
+        if (null != attrs) {
+            TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.ScrollbarRecyclerView);
+            boolean isFloat = ta.getBoolean(R.styleable.ScrollbarRecyclerView_isFloatBar, false);
+            if (isFloat) {
+                isFloatBar = 1;
+            } else {
+                isFloatBar = 0;
+            }
+            spaceByList = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_spaceByList, 0);
+            spaceByParent = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_spaceByParent, 0);
+            scrollbarLength = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarLength, -1);
+            scrollbarWidth = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarWidth, dip5);
+            scrollbarBGWidth = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarBGWidth, dip5);
+            scrollbarBGLength = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarBGLength, -1);
+            scrollbarBarWidth = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarBarWidth, dip5);
+            scrollbarBarLength = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarBarLength, -1);
+            boolean variable = ta.getBoolean(R.styleable.ScrollbarRecyclerView_lengthVariable, true);
+            if (variable) {
+                lengthVariable = LENGTH_VARIABLE_TRUE;
+            } else {
+                lengthVariable = LENGTH_VARIABLE_FALSE;
+            }
+            scrollbarBarMinLength = ta.getDimensionPixelSize(R.styleable.ScrollbarRecyclerView_scrollbarBarMinLength, dip15);
+            scrollbarBGShape = ta.getResourceId(R.styleable.ScrollbarRecyclerView_scrollbarBGShape, R.drawable.back_corner_solidf7f7f7);
+            scrollbarBarShape = ta.getResourceId(R.styleable.ScrollbarRecyclerView_scrollbarBarShape, R.drawable.back_corner_solidff6f28);
+        }
     }
 
     /*  该方法设置后可以让动态创建的RecyclerView显示滚动条
@@ -313,6 +345,8 @@ public class ScrollbarRecyclerView extends RelativeLayout {
     /*
         这个方法是创建自定义的滚动条
         在调用这个方法前，需要将对应的参数都设置好，不然会抛出异常
+        注意：这个方法的调用要在activity的布局都绘制完后调用，这样控件的宽高计算才会准确
+        建议在方法onWindowFocusChanged里调用
      */
     public void createScrollBar() {
         if (null == recyclerView.getLayoutManager()) {
@@ -332,7 +366,7 @@ public class ScrollbarRecyclerView extends RelativeLayout {
             throw new ScrollbarException("RecyclerView的自定义布局管理器的滚动方向和设置的滚动条的方向不一致");
         }
 
-        if (lengthVariable == LENGTH_VARIABLE_FALSE && 0 >= scrollbarBarLength) {
+        if (lengthVariable == LENGTH_VARIABLE_FALSE && null == scrollbarView && 0 >= scrollbarBarLength) {
             throw new ScrollbarException("scrollbar的滚动view的长度是不变的，请为其设置一个固定的长度，通过：setScrollbarBarLength()");
         }
 
@@ -348,6 +382,7 @@ public class ScrollbarRecyclerView extends RelativeLayout {
         }
         recyclerView.removeOnScrollListener(scrollListener);
         addOnScrollListener(scrollListener);
+        scrollListener.onScrolled(recyclerView, 0, 0);
     }
 
     /**
@@ -362,28 +397,34 @@ public class ScrollbarRecyclerView extends RelativeLayout {
                 throw new ScrollbarException("scrollbar自定义view不能为空");
             }
             scrollbarRootLayout.setId(R.id.scroll_bar_root_layout);
-            if (2 > scrollbarRootLayout.getChildCount()) {
-                throw new ScrollbarException("scrollbar自定义view的子控件数量不能小于2");
-            }
             bgView = scrollbarRootLayout.findViewById(R.id.scroll_bg_view);
-            if (null == bgView) {
-                bgView = scrollbarRootLayout.getChildAt(0);
-                bgView.setId(R.id.scroll_bg_view);
-            }
             barView = scrollbarRootLayout.findViewById(R.id.scroll_bar_view);
             if (null == barView) {
-                barView = scrollbarRootLayout.getChildAt(1);
-                barView.setId(R.id.scroll_bar_view);
+                throw new ScrollbarException("自定义滚动条的滚动View不能为空");
             }
-            //获取scrollbar背景view的长度
-            LayoutParams bgViewLP = (LayoutParams) bgView.getLayoutParams();
-            if (mOrientation == RecyclerView.VERTICAL)
-                scrollbarBGLength = bgViewLP.height;
-            else
-                scrollbarBGLength = bgViewLP.width;
+            if (null != bgView) {
+                //获取scrollbar背景view的长度
+                LayoutParams bgViewLP = (LayoutParams) bgView.getLayoutParams();
+                if (mOrientation == RecyclerView.VERTICAL)
+                    scrollbarBGLength = bgViewLP.height;
+                else
+                    scrollbarBGLength = bgViewLP.width;
+            }
             computeDefaultLength();
         } else {
             computeDefaultLength();
+
+            if (scrollbarBGLength > scrollbarLength) {
+                scrollbarBGLength = scrollbarLength;
+            }
+
+            if (scrollbarBGWidth > scrollbarWidth) {
+                scrollbarBGWidth = scrollbarWidth;
+            }
+
+            if (scrollbarBarWidth > scrollbarWidth) {
+                scrollbarBarWidth = scrollbarWidth;
+            }
 
             scrollbarRootLayout = new RelativeLayout(getContext());
             scrollbarRootLayout.setId(R.id.scroll_bar_root_layout);
@@ -406,10 +447,13 @@ public class ScrollbarRecyclerView extends RelativeLayout {
             RelativeLayout.LayoutParams barViewLP;
             if (mOrientation == RecyclerView.VERTICAL) {
                 barViewLP = new LayoutParams(scrollbarBarWidth, scrollbarBarLength);
+                barViewLP.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+                barViewLP.addRule(RelativeLayout.ALIGN_TOP, bgView.getId());
             } else {
                 barViewLP = new LayoutParams(scrollbarBarLength, scrollbarBarWidth);
+                barViewLP.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+                barViewLP.addRule(RelativeLayout.ALIGN_LEFT, bgView.getId());
             }
-            barViewLP.addRule(RelativeLayout.CENTER_IN_PARENT, RelativeLayout.TRUE);
             scrollbarRootLayout.addView(barView, barViewLP);
         }
     }
@@ -577,13 +621,31 @@ public class ScrollbarRecyclerView extends RelativeLayout {
                 recyclerView.post(new Runnable() {
                     @Override
                     public void run() {
-                        if (mOrientation == RecyclerView.VERTICAL) {
-                            maxOffset = initScrollInfo(RecyclerView.VERTICAL);
-                        } else {
-                            maxOffset = initScrollInfo(RecyclerView.HORIZONTAL);
-                        }
+                        maxOffset = initScrollInfo(mOrientation);
+                        Log.d("ScrollbarRecyclerView","偏移量是：" + maxOffset);
                     }
                 });
+            }
+            int offset;
+            if (mOrientation == RecyclerView.VERTICAL) {
+                offset = recyclerView.computeVerticalScrollOffset();
+            } else {
+                offset = recyclerView.computeHorizontalScrollOffset();
+            }
+            Log.d("ScrollbarRecyclerView", "offset:" + offset);
+            if (offset > maxOffset) {
+                if (lengthVariable == LENGTH_VARIABLE_TRUE) {
+                    maxOffset = initScrollInfo(mOrientation);
+                    Log.d("ScrollbarRecyclerView","修正偏移量是：" + maxOffset);
+                } else {
+                    maxOffset = offset;
+                    ratio = barSpace * 1.0f / maxOffset;
+                }
+            }
+            if (mOrientation == RecyclerView.VERTICAL) {
+                barView.setTranslationY(offset * ratio);
+            } else {
+                barView.setTranslationX(offset * ratio);
             }
         }
     };
@@ -593,18 +655,34 @@ public class ScrollbarRecyclerView extends RelativeLayout {
         if (mOrientation == RecyclerView.VERTICAL) {
             extent = recyclerView.computeVerticalScrollExtent();
             range = recyclerView.computeVerticalScrollRange();
-            barViewLP.height = (int) (extent * scrollbarBGLength * 1.0f / range);
-            barSpace = scrollbarBGLength - barViewLP.height;
         } else {
             extent = recyclerView.computeHorizontalScrollExtent();
             range = recyclerView.computeHorizontalScrollRange();
-            barViewLP.width = (int) (extent * scrollbarBGLength * 1.0f / range);
-            barSpace = scrollbarBGLength - barViewLP.width;
         }
-        if (barViewLP.width <= scrollbarBarMinLength) {
-            barViewLP.width = scrollbarBarMinLength;
-//            scrollbarBarLength =
+        int barLength = (int) (extent * scrollbarBGLength * 1.0f / range);
+        if (lengthVariable == LENGTH_VARIABLE_TRUE) {
+            if (barLength <= scrollbarBarMinLength) {
+                barLength = scrollbarBarMinLength;
+            }
+        } else {
+            if (null == scrollbarView) {
+                barLength = scrollbarBarLength;
+            } else {
+                if (mOrientation == RecyclerView.VERTICAL) {
+                    barLength = barViewLP.height;
+                } else {
+                    barLength = barViewLP.width;
+                }
+            }
         }
+        if (mOrientation == RecyclerView.VERTICAL) {
+            barViewLP.height = barLength;
+        } else {
+            barViewLP.width = barLength;
+        }
+        Log.d("ScrollbarRecyclerView", "scrollbarBGLength:\t" + scrollbarBGLength + "\tbarLength:" + barLength);
+        barSpace = scrollbarBGLength - barLength;
+        scrollbarBarLength = barLength;
         barView.setLayoutParams(barViewLP);
         int maxoffset = range - extent;
         ratio = barSpace * 1.0f / maxoffset;

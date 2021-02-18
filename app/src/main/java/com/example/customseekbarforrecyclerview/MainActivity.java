@@ -20,6 +20,11 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private int dip15;
+    private int dip50;
+
+    private boolean hasFocus = false;
+
     private ScrollbarRecyclerView srl;
 
     @Override
@@ -28,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         initView();
         initData();
+//        initBar();
     }
 
     private void initView() {
@@ -35,26 +41,49 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initData() {
+
+        dip15 = (int) getResources().getDimension(R.dimen.dip_15);
+        dip50 = (int) getResources().getDimension(R.dimen.dip_50);
+
         srl.setLayoutManager(new LinearLayoutManager(this));
         List<String> itemList = new ArrayList<>();
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 200; i++) {
             itemList.add("数据：第" + i + "条");
         }
         srl.setAdapter(new ListAdapter(itemList));
-        srl.createScrollBar();
+    }
+
+    private void initBar() {
+        srl.setScrollbarBarWidth(dip15);
+        srl.setScrollbarBGWidth(dip15);
+        srl.setScrollbarWidth(dip15);
+        srl.setScrollbarBGLength(dip50 * 3);
+        srl.setScrollbarBGShape(R.drawable.back_corner_solid00ffff);
+        //上面的几行代码是对默认自定义滚动条的属性设置，如果使用ScrollbarView接口创建自定义滚动条，则上面的代码无效
+        srl.setSpaceByParent(dip15);
+        srl.setSpaceByList(dip50);
+        srl.setScrollbarBarMinLength(dip15 * 2);
+        srl.setIsFloatBar(1);
+        srl.setLengthVariable(ScrollbarRecyclerView.LENGTH_VARIABLE_FALSE);
+        srl.setScrollbarBarLength(dip15);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && !this.hasFocus) {
+            this.hasFocus = hasFocus;
+            //为了在自定义控件中能够准确计算宽高，第一次默认在这里调用
+            srl.createScrollBar();
+        }
     }
 
     private class ListAdapter extends RecyclerView.Adapter<ListAdapter.ListViewHolder> {
-
-        private int dip15;
-        private int dip50;
 
         private List<String> itemList;
 
         public ListAdapter(List<String> itemList) {
             this.itemList = itemList;
-            dip15 = (int) getResources().getDimension(R.dimen.dip_15);
-            dip50 = (int) getResources().getDimension(R.dimen.dip_50);
         }
 
         @NonNull
