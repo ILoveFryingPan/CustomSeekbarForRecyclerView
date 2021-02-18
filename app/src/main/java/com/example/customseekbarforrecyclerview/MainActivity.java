@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
         dip15 = (int) getResources().getDimension(R.dimen.dip_15);
         dip50 = (int) getResources().getDimension(R.dimen.dip_50);
 
-        srl.setLayoutManager(new LinearLayoutManager(this));
+        srl.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         List<String> itemList = new ArrayList<>();
         for (int i = 0; i < 200; i++) {
             itemList.add("数据：第" + i + "条");

@@ -9,6 +9,8 @@ import android.os.Build;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -168,6 +170,9 @@ public class ScrollbarRecyclerView extends RelativeLayout {
      */
     private float ratio;
 
+    private ScrollbarGestureListener scrollbarGestureListener;
+    private GestureDetector scrollbarGestureDetector;
+
     public ScrollbarRecyclerView(Context context) {
         super(context);
         init(null);
@@ -234,6 +239,9 @@ public class ScrollbarRecyclerView extends RelativeLayout {
             scrollbarBGShape = ta.getResourceId(R.styleable.ScrollbarRecyclerView_scrollbarBGShape, R.drawable.back_corner_solidf7f7f7);
             scrollbarBarShape = ta.getResourceId(R.styleable.ScrollbarRecyclerView_scrollbarBarShape, R.drawable.back_corner_solidff6f28);
         }
+
+        scrollbarGestureListener = new ScrollbarGestureListener();
+        scrollbarGestureDetector = new GestureDetector(getContext(), scrollbarGestureListener);
     }
 
     /*  该方法设置后可以让动态创建的RecyclerView显示滚动条
@@ -370,8 +378,15 @@ public class ScrollbarRecyclerView extends RelativeLayout {
             throw new ScrollbarException("scrollbar的滚动view的长度是不变的，请为其设置一个固定的长度，通过：setScrollbarBarLength()");
         }
 
+        if (null != barView) {
+            barView.setOnTouchListener(null);
+        }
         createScrollbarView();
         showScrollbarView();
+
+        if (null != barView) {
+            barView.setOnTouchListener(touchListener);
+        }
 
         extent = 0;
         range = 0;
@@ -622,7 +637,6 @@ public class ScrollbarRecyclerView extends RelativeLayout {
                     @Override
                     public void run() {
                         maxOffset = initScrollInfo(mOrientation);
-                        Log.d("ScrollbarRecyclerView","偏移量是：" + maxOffset);
                     }
                 });
             }
@@ -632,11 +646,9 @@ public class ScrollbarRecyclerView extends RelativeLayout {
             } else {
                 offset = recyclerView.computeHorizontalScrollOffset();
             }
-            Log.d("ScrollbarRecyclerView", "offset:" + offset);
             if (offset > maxOffset) {
                 if (lengthVariable == LENGTH_VARIABLE_TRUE) {
                     maxOffset = initScrollInfo(mOrientation);
-                    Log.d("ScrollbarRecyclerView","修正偏移量是：" + maxOffset);
                 } else {
                     maxOffset = offset;
                     ratio = barSpace * 1.0f / maxOffset;
@@ -650,6 +662,9 @@ public class ScrollbarRecyclerView extends RelativeLayout {
         }
     };
 
+    /*
+        根据recyclerView计算滚动的一些参数
+     */
     private int initScrollInfo(int mOrientation) {
         RelativeLayout.LayoutParams barViewLP = (LayoutParams) barView.getLayoutParams();
         if (mOrientation == RecyclerView.VERTICAL) {
@@ -680,13 +695,81 @@ public class ScrollbarRecyclerView extends RelativeLayout {
         } else {
             barViewLP.width = barLength;
         }
-        Log.d("ScrollbarRecyclerView", "scrollbarBGLength:\t" + scrollbarBGLength + "\tbarLength:" + barLength);
         barSpace = scrollbarBGLength - barLength;
         scrollbarBarLength = barLength;
         barView.setLayoutParams(barViewLP);
         int maxoffset = range - extent;
         ratio = barSpace * 1.0f / maxoffset;
         return maxoffset;
+    }
+
+    OnTouchListener touchListener = new OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            scrollbarGestureDetector.onTouchEvent(event);
+            return true;
+        }
+    };
+
+    class ScrollbarGestureListener extends GestureDetector.SimpleOnGestureListener {
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            if (mOrientation == RecyclerView.VERTICAL) {
+                if (e2.getY() - e1.getY() > 0) {
+                    //从上往下滑动
+                    if (barSpace > barView.getTranslationY()) {
+                        int distance = (int) Math.abs(e2.getY() - e1.getY());
+                        if (barSpace < barView.getTranslationY() + distance) {
+                            barView.setTranslationY(barSpace);
+                            /*
+                                使用smoothScrollBy方法RecyclerView的滚动监听会响应
+                                算是双重验证吧
+                             */
+                            recyclerView.smoothScrollBy(0, range - extent - recyclerView.computeVerticalScrollOffset());
+                        } else {
+                            barView.setTranslationY(barView.getTranslationY() + distance);
+                            recyclerView.scrollBy(0, (int) (distance / ratio));
+                        }
+                    }
+                } else if (e2.getY() - e1.getY() < 0) {
+                    if (0 < barView.getTranslationY()) {
+                        int distance = (int) Math.abs(e2.getY() - e1.getY());
+                        if (distance > barView.getTranslationY()) {
+                            barView.setTranslationY(0);
+                            recyclerView.smoothScrollBy(0, -recyclerView.computeVerticalScrollOffset());
+                        } else {
+                            barView.setTranslationY(barView.getTranslationY() - distance);
+                            recyclerView.scrollBy(0, -(int) (distance / ratio));
+                        }
+                    }
+                }
+            } else {
+                if (e2.getX() - e1.getX() > 0) {
+                    //从左往又滑
+                    if (barSpace > barView.getTranslationX()) {
+                        int distance = (int) Math.abs(e2.getX() - e1.getX());
+                        if (barSpace < barView.getTranslationX() + distance) {
+                            barView.setTranslationX(barSpace);
+                            recyclerView.smoothScrollBy(range - extent - recyclerView.computeHorizontalScrollOffset(), 0);
+                        } else {
+                            barView.setTranslationX(barView.getTranslationX() + distance);
+                            recyclerView.scrollBy((int) (distance / ratio), 0);
+                        }
+                    }
+                } else if (e2.getX() - e1.getX() < 0) {
+                    int distance = (int) Math.abs(e2.getX() - e1.getX());
+                    if (distance > barView.getTranslationX()) {
+                        barView.setTranslationX(0);
+                        recyclerView.smoothScrollBy(-recyclerView.computeHorizontalScrollOffset(), 0);
+                    } else {
+                        barView.setTranslationX(barView.getTranslationX() - distance);
+                        recyclerView.scrollBy(-(int) (distance / ratio), 0);
+                    }
+                }
+            }
+            return super.onScroll(e1, e2, distanceX, distanceY);
+        }
     }
 
     /*
