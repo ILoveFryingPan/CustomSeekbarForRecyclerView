@@ -1,7 +1,9 @@
 package com.example.customseekbarforrecyclerview;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
@@ -34,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
         initView();
         initData();
 //        initBar();
+        srl.setScrollbarView(scrollbarView);
     }
 
     private void initView() {
@@ -46,12 +49,25 @@ public class MainActivity extends AppCompatActivity {
         dip50 = (int) getResources().getDimension(R.dimen.dip_50);
 
         srl.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+//        srl.setLayoutManager(new LinearLayoutManager(this));
         List<String> itemList = new ArrayList<>();
         for (int i = 0; i < 200; i++) {
             itemList.add("数据：第" + i + "条");
         }
         srl.setAdapter(new ListAdapter(itemList));
     }
+
+    ScrollbarRecyclerView.ScrollbarView scrollbarView = new ScrollbarRecyclerView.ScrollbarViewById() {
+        @Override
+        public int getVerticalLayout() {
+            return R.layout.layout_vertical_scrollbar;
+        }
+
+        @Override
+        public int getHorizontalLayout() {
+            return R.layout.layout_horizontal_scrollbar;
+        }
+    };
 
     private void initBar() {
         srl.setScrollbarBarWidth(dip15);
@@ -99,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return null == itemList? 0 : itemList.size();
+            return null == itemList ? 0 : itemList.size();
         }
 
         public class ListViewHolder extends RecyclerView.ViewHolder {

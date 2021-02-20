@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroll_bar_root_layout"
+    android:layout_width="@dimen/dip_25"
+    android:layout_height="200dp">
+    <ImageView
+        android:id="@+id/miaomiao_top_image"
+        android:layout_width="@dimen/dip_25"
+        android:layout_height="@dimen/dip_25"
+        android:src="@mipmap/miaomiao"
+        android:scaleType="centerInside"/>
+    <ImageView
+        android:id="@+id/miaomiao_bottom_image"
+        android:layout_width="@dimen/dip_25"
+        android:layout_height="@dimen/dip_25"
+        android:src="@mipmap/miaomiao"
+        android:scaleType="centerInside"
+        android:layout_alignParentBottom="true"/>
+
+    <View
+        android:id="@+id/scroll_bg_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/back_corner_solid666666"
+        android:layout_below="@id/miaomiao_top_image"
+        android:layout_above="@id/miaomiao_bottom_image"/>
+    <View
+        android:id="@+id/scroll_bar_view"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:background="@drawable/back_corner_solidff00ff"
+        android:layout_alignTop="@id/scroll_bg_view"/>
+</RelativeLayout>

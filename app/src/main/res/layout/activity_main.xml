@@ -10,15 +10,15 @@
         android:layout_height="match_parent"
         app:scrollbarBarWidth="@dimen/dip_15"
         app:scrollbarBGWidth="@dimen/dip_15"
-        app:scrollbarWidth="@dimen/dip_15"
+        app:scrollbarWidth="@dimen/dip_25"
+        app:scrollbarLength="200dp"
         app:scrollbarBGLength="150dp"
         app:scrollbarBGShape="@drawable/back_corner_solid00ffff"
-
         app:spaceByParent="@dimen/dip_15"
         app:spaceByList="@dimen/dip_50"
         app:scrollbarBarMinLength="@dimen/dip_30"
         app:scrollbarBarLength="@dimen/dip_15"
-        app:lengthVariable="false">
+        app:lengthVariable="true">
 
     </com.example.seekbarrecycler.ScrollbarRecyclerView>
 </LinearLayout>
